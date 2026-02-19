@@ -85,85 +85,202 @@ app.listen(port, async () => {
 
 app.get("/", (req, res) => {
     res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Worker Status</title>
-            <style>
-                body {
-                    font-family: Arial;
-                }
-                table {
-                    border-collapse: collapse;
-                    width: 60%;
-                    margin-bottom: 20px;
-                }
-                th, td {
-                    border: 1px solid black;
-                    padding: 5px;
-                    text-align: left;
-                }
-                th {
-                    background-color: #b7b3b3;
-                }
-                .ok {
-                    color: green;
-                }
-                .fail {
-                    color: red;
-                }
-            </style>
-        </head>
-        <body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worker Monitor</title>
 
-            <h2>Worker Information</h2>
+<style>
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #2c3e50;
+}
 
-            <div id="content">Loading...</div>
+header {
+    background: #2c3e50;
+    color: white;
+    padding: 18px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
 
-            <script>
-                async function loadStatus() {
-                    try {
-                        const response = await fetch("/status");
-                        const data = await response.json();
+.container {
+    max-width: 1100px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
 
-                        let estadoClase = data.coordinator.status === "Conectado"
-                            ? "ok"
-                            : "fail";
+.section {
+    background: white;
+    border: 1px solid #dcdfe6;
+    margin-bottom: 25px;
+}
 
-                        let html = "";
+.section-title {
+    background: #eef1f5;
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: bold;
+    border-bottom: 1px solid #dcdfe6;
+    text-transform: uppercase;
+}
 
-                        html += "<table>";
-                        html += "<tr><th colspan='2'>Worker</th></tr>";
-                        html += "<tr><td>ID</td><td>" + data.worker.id + "</td></tr>";
-                        html += "<tr><td>Puerto</td><td>" + data.worker.port + "</td></tr>";
-                        html += "<tr><td>URL pública</td><td>" + data.worker.public_url + "</td></tr>";
-                        html += "<tr><td>Heartbeat interval</td><td>" + data.worker.heartbeat_interval + " ms</td></tr>";
-                        html += "<tr><td>Timestamp</td><td>" + new Date(data.worker.timestamp).toLocaleString() + "</td></tr>";
-                        html += "</table>";
+.section-content {
+    padding: 15px 18px;
+}
 
-                        html += "<table>";
-                        html += "<tr><th colspan='2'>Coordinator</th></tr>";
-                        html += "<tr><td>URL</td><td>" + data.coordinator.url + "</td></tr>";
-                        html += "<tr><td>Estado</td><td class='" + estadoClase + "'>" + data.coordinator.status + "</td></tr>";
-                        html += "<tr><td>Último heartbeat</td><td>" +
-                            (data.coordinator.last_heartbeat
-                                ? new Date(data.coordinator.last_heartbeat).toLocaleString()
-                                : "N/A") + "</td></tr>";
-                        html += "</table>";
+.grid {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    row-gap: 10px;
+    column-gap: 15px;
+    font-size: 14px;
+}
 
-                        document.getElementById("content").innerHTML = html;
+.label {
+    color: #7f8c8d;
+}
 
-                    } catch (error) {
-                        document.getElementById("content").innerHTML =
-                            "<p style='color:red;'>Error obteniendo datos</p>";
-                    }
-                }
+.value {
+    font-weight: 500;
+    word-break: break-all;
+}
 
-                loadStatus();
-                setInterval(loadStatus, 2000);
-            </script>
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 3px;
+    font-weight: bold;
+}
 
-        </body>
-        </html>
-    `);
+.status-ok {
+    background: #e8f8f2;
+    color: #1e8449;
+    border: 1px solid #27ae60;
+}
+
+.status-fail {
+    background: #fdecea;
+    color: #922b21;
+    border: 1px solid #c0392b;
+}
+
+footer {
+    text-align: center;
+    padding: 15px;
+    font-size: 12px;
+    color: #95a5a6;
+    margin-top: 40px;
+}
+
+@media (max-width: 700px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+Worker Monitoring Service
+</header>
+
+<div class="container">
+
+<div class="section">
+<div class="section-title">Worker</div>
+<div class="section-content" id="workerSection">
+Cargando información...
+</div>
+</div>
+
+<div class="section">
+<div class="section-title">Coordinator</div>
+<div class="section-content" id="coordinatorSection">
+Cargando información...
+</div>
+</div>
+
+</div>
+
+<footer>
+Sistema de monitoreo en ejecución
+</footer>
+
+<script>
+async function loadStatus() {
+    try {
+        const response = await fetch("/status");
+        const data = await response.json();
+
+        const workerHtml = \`
+            <div class="grid">
+                <div class="label">ID</div>
+                <div class="value">\${data.worker.id}</div>
+
+                <div class="label">Puerto</div>
+                <div class="value">\${data.worker.port}</div>
+
+                <div class="label">URL pública</div>
+                <div class="value">\${data.worker.public_url}</div>
+
+                <div class="label">Heartbeat interval</div>
+                <div class="value">\${data.worker.heartbeat_interval} ms</div>
+
+                <div class="label">Timestamp</div>
+                <div class="value">\${new Date(data.worker.timestamp).toLocaleString()}</div>
+            </div>
+        \`;
+
+        const statusClass = data.coordinator.status === "Conectado"
+            ? "status-ok"
+            : "status-fail";
+
+        const coordinatorHtml = \`
+            <div class="grid">
+                <div class="label">URL</div>
+                <div class="value">\${data.coordinator.url}</div>
+
+                <div class="label">Estado</div>
+                <div class="value">
+                    <span class="status-badge \${statusClass}">
+                        \${data.coordinator.status}
+                    </span>
+                </div>
+
+                <div class="label">Último heartbeat</div>
+                <div class="value">
+                    \${data.coordinator.last_heartbeat
+                        ? new Date(data.coordinator.last_heartbeat).toLocaleString()
+                        : "N/A"}
+                </div>
+            </div>
+        \`;
+
+        document.getElementById("workerSection").innerHTML = workerHtml;
+        document.getElementById("coordinatorSection").innerHTML = coordinatorHtml;
+
+    } catch (error) {
+        document.getElementById("workerSection").innerHTML =
+            "<span style='color:#c0392b'>Error cargando datos</span>";
+        document.getElementById("coordinatorSection").innerHTML = "";
+    }
+}
+
+loadStatus();
+setInterval(loadStatus, 2000);
+</script>
+
+</body>
+</html>
+`);
 });
+    
