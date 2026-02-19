@@ -104,7 +104,7 @@ app.get("/", (req, res) => {
                     text-align: left;
                 }
                 th {
-                    background-color: #e0e0e0;
+                    background-color: #b7b3b3;
                 }
                 .ok {
                     color: green;
